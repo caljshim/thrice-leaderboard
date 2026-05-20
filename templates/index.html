@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thrice</title>
+<style>
+  :root {
+    --bg: #fbf7ef;
+    --ink: #1c1c1c;
+    --muted: #6b6b6b;
+    --accent: #b3203b;
+    --accent-dim: #cf6a7e;
+    --orange: #f08a24;
+    --card: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --danger: #b3203b;
+    --good: #2e7d3a;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  main { padding: 24px 16px 80px; }
+
+  /* Auth card */
+  .auth-wrap {
+    min-height: calc(100vh - 48px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.04);
+  }
+  .card.auth { width: 100%; max-width: 380px; padding: 28px 24px; }
+
+  .brand { text-align: center; margin-bottom: 22px; }
+  .brand h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; }
+  .brand .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .tabs {
+    display: flex; background: #f1ece1; border-radius: 999px; padding: 4px;
+    margin-bottom: 20px;
+  }
+  .tabs button {
+    flex: 1; border: 0; background: transparent; font: inherit;
+    font-weight: 600; color: var(--muted); padding: 8px 12px;
+    border-radius: 999px; cursor: pointer;
+  }
+  .tabs button.active {
+    background: white; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  label {
+    display: block; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .field { margin-bottom: 14px; }
+  input {
+    width: 100%; font: inherit; padding: 10px 12px;
+    border-radius: 10px; border: 1px solid var(--border); background: white;
+  }
+  input:focus {
+    outline: none; border-color: var(--accent-dim);
+    box-shadow: 0 0 0 3px rgba(179, 32, 59, 0.12);
+  }
+  input.pin {
+    letter-spacing: 0.6em; text-align: center;
+    font-weight: 700; font-size: 18px;
+  }
+  input.score-cell {
+    text-align: center; font-weight: 700; font-size: 18px;
+    padding: 8px 4px; width: 56px;
+  }
+
+  .submit {
+    width: 100%; margin-top: 6px;
+    background: var(--accent); color: white; border: 0;
+    font: inherit; font-weight: 700; padding: 12px;
+    border-radius: 10px; cursor: pointer;
+  }
+  .submit:disabled { opacity: 0.5; cursor: wait; }
+  button.ghost {
+    background: transparent; border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 999px; font: inherit; cursor: pointer;
+  }
+
+  .err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 1em; }
+  .ok  { color: var(--good);   font-size: 13px; margin-top: 10px; min-height: 1em; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  /* App layout (logged in) */
+  .app {
+    max-width: 760px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px;
+    flex-wrap: wrap;
+  }
+  .topbar h2 { margin: 0; font-size: 18px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .who { color: var(--muted); font-size: 13px; }
+  .topbar .who strong { color: var(--ink); }
+
+  .nav {
+    display: flex; gap: 4px; background: #f1ece1;
+    border-radius: 999px; padding: 3px;
+  }
+  .nav button {
+    border: 0; background: transparent; font: inherit;
+    font-weight: 600; color: var(--muted);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    font-size: 14px;
+  }
+  .nav button.active {
+    background: white; color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .section { padding: 18px 20px; }
+  .section h3 {
+    margin: 0 0 4px; font-size: 16px;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .section .date { color: var(--muted); font-size: 13px; font-weight: 400; }
+  .section .desc { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+
+  .q-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    margin-bottom: 14px;
+  }
+  .q-cell {
+    background: #fff7e6;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .q-cell .q-num {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .q-cell .q-cat {
+    font-size: 11px; color: var(--muted);
+    min-height: 28px; margin: 4px 0 8px;
+    overflow: hidden; line-height: 1.25;
+  }
+
+  .or {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--muted); font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.08em; margin: 14px 0;
+  }
+  .or::before, .or::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .total-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .total-row label { margin: 0; }
+  .total-row input { max-width: 100px; text-align: center; font-weight: 700; font-size: 18px; }
+
+  .live-total {
+    font-size: 13px; color: var(--muted);
+    margin-top: 4px; text-align: right;
+  }
+  .live-total strong { color: var(--ink); font-size: 16px; }
+
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .actions .submit { flex: 1; margin-top: 0; }
+
+  .lb {
+    width: 100%; border-collapse: collapse; font-size: 14px;
+  }
+  .lb th, .lb td {
+    text-align: left; padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lb th {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted); font-weight: 700;
+  }
+  /* Player column takes the leftover horizontal space, so numeric columns
+     hug their contents and the header sits right above its values. */
+  .lb th:nth-child(2), .lb td:nth-child(2) { width: 100%; }
+  .lb .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .lb .rank { color: var(--muted); white-space: nowrap; }
+  .lb tbody tr:last-child td { border-bottom: 0; }
+  .lb .me { background: #fff7e6; }
+  .lb .empty { color: var(--muted); padding: 16px 0; text-align: center; }
+
+  .lb-tabs {
+    display: flex; gap: 6px; margin-bottom: 12px;
+  }
+  .lb-tabs button {
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px;
+    cursor: pointer; color: var(--muted);
+  }
+  .lb-tabs button.active {
+    background: var(--ink); color: white; border-color: var(--ink);
+  }
+
+  /* Compare card */
+  .cmp-controls {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    align-items: flex-start; margin-bottom: 16px;
+  }
+  .cmp-users {
+    display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0;
+  }
+  .cmp-users label {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f1ece1; border-radius: 999px; padding: 4px 10px 4px 8px;
+    font-size: 13px; cursor: pointer; user-select: none;
+    text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink);
+    margin: 0;
+  }
+  .cmp-users input[type="checkbox"] { margin: 0; cursor: pointer; }
+  .cmp-range { display: flex; gap: 4px; background: #f1ece1; border-radius: 999px; padding: 3px; }
+  .cmp-range button {
+    border: 0; background: transparent; font: inherit; font-size: 13px;
+    color: var(--muted); padding: 5px 12px; border-radius: 999px; cursor: pointer;
+    font-weight: 600;
+  }
+  .cmp-range button.active {
+    background: white; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .cmp-wrap { overflow-x: auto; }
+  .cmp-grid {
+    border-collapse: separate; border-spacing: 4px;
+    font-size: 14px; font-variant-numeric: tabular-nums;
+  }
+  .cmp-grid th, .cmp-grid td {
+    padding: 8px 10px; text-align: center;
+    min-width: 56px; border-radius: 8px;
+  }
+  .cmp-grid thead th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); font-weight: 700;
+  }
+  .cmp-grid .cmp-date {
+    text-align: left; color: var(--muted); font-size: 12px;
+    white-space: nowrap; padding-left: 4px;
+  }
+  .cmp-grid .cmp-win   { background: #d5f0d9; color: #1f5a2c; font-weight: 700; }
+  .cmp-grid .cmp-lose  { background: #f8d8d4; color: #8e1c2e; }
+  .cmp-grid .cmp-empty { background: #f1ece1; color: #b3a99a; }
+
+  /* Logged-in welcome */
+  .welcome { text-align: center; }
+  .welcome .hello { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .welcome .name { color: var(--accent); }
+</style>
+</head>
+<body>
+<main id="root"></main>
+
+<script>
+const root = document.getElementById("root");
+let currentUser = null;
+let mode = "login";          // auth tab
+let appView = "leaderboard"; // "score" | "leaderboard" | "compare"
+let scoreMode = "perq";      // "perq" | "total"
+let lbView = "daily";        // "daily" | "total" | "average"
+let compareState = { users: null, days: 7 };  // users=null means "select all on first load"
+
+const escape = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const $ = (id) => document.getElementById(id);
+
+// SQLite stores updated_at via datetime('now'), which is UTC in "YYYY-MM-DD HH:MM:SS".
+function formatLocalDateTime(utcString) {
+  if (!utcString) return "";
+  const iso = utcString.replace(" ", "T") + "Z";
+  const d = new Date(iso);
+  if (isNaN(d)) return utcString;
+  return d.toLocaleString();
+}
+// game_date is a plain calendar date "YYYY-MM-DD" — render as a friendly local date.
+function formatLocalDate(dateString) {
+  if (!dateString) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  if (!m) return dateString;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+}
+
+async function api(method, url, body) {
+  const opts = { method, headers: {"Content-Type": "application/json"} };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "request failed");
+  return d;
+}
+
+/* ---------- AUTH VIEW ---------- */
+
+function renderAuth(err = "") {
+  root.innerHTML = `
+    <div class="auth-wrap">
+      <div class="card auth">
+        <div class="brand">
+          <h1>Thrice</h1>
+          <div class="sub">daily trivia score tracker</div>
+        </div>
+        <div class="tabs" role="tablist">
+          <button data-mode="login"    class="${mode === 'login' ? 'active' : ''}">Log in</button>
+          <button data-mode="register" class="${mode === 'register' ? 'active' : ''}">Register</button>
+        </div>
+        <form id="auth-form" autocomplete="on">
+          <div class="field">
+            <label for="auth-name">Username</label>
+            <input id="auth-name" type="text" maxlength="32" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="auth-pin">4-digit PIN</label>
+            <input id="auth-pin" class="pin" type="password" inputmode="numeric"
+                   pattern="[0-9]{4}" minlength="4" maxlength="4" required
+                   autocomplete="${mode === 'register' ? 'new-password' : 'current-password'}">
+            ${mode === 'register' ? '<div class="hint">Pick four digits you can remember.</div>' : ''}
+          </div>
+          <button class="submit" type="submit">${mode === 'register' ? 'Create account' : 'Log in'}</button>
+          <div class="err" id="auth-err">${escape(err)}</div>
+        </form>
+      </div>
+    </div>
+  `;
+  for (const b of root.querySelectorAll(".tabs button")) {
+    b.addEventListener("click", () => { mode = b.dataset.mode; renderAuth(); $("auth-name").focus(); });
+  }
+  $("auth-form").addEventListener("submit", onAuthSubmit);
+  $("auth-name").focus();
+}
+
+async function onAuthSubmit(e) {
+  e.preventDefault();
+  const name = $("auth-name").value.trim();
+  const pin  = $("auth-pin").value.trim();
+  const errEl = $("auth-err");
+  if (!name) return errEl.textContent = "Username is required";
+  if (!/^\d{4}$/.test(pin)) return errEl.textContent = "PIN must be exactly 4 digits";
+  try {
+    const url = mode === "register" ? "/api/signup" : "/api/login";
+    const data = await api("POST", url, { name, pin });
+    currentUser = data.user;
+    await renderApp();
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+}
+
+/* ---------- APP VIEW (logged in) ---------- */
+
+async function renderApp() {
+  // Pull everything in parallel.
+  const [today, scoreData, lbDaily, lbTotal, lbAvg] = await Promise.all([
+    api("GET", "/api/today"),
+    api("GET", "/api/score"),
+    api("GET", "/api/leaderboard/daily"),
+    api("GET", "/api/leaderboard/total"),
+    api("GET", "/api/leaderboard/average"),
+  ]);
+
+  const date = today.game_date;
+  const questions = today.questions;       // [{number, category}]
+  const score = scoreData.score;           // null or row
+
+  // Decide initial score mode based on what's already saved.
+  if (score && score.total_override !== null) {
+    scoreMode = "total";
+  } else {
+    scoreMode = "perq";
+  }
+
+  root.innerHTML = `
+    <div class="app">
+      <div class="topbar">
+        <h2>Thrice</h2>
+        <nav class="nav">
+          <button data-view="score"       class="${appView === 'score'       ? 'active' : ''}">Score</button>
+          <button data-view="leaderboard" class="${appView === 'leaderboard' ? 'active' : ''}">Leaderboard</button>
+          <button data-view="compare"     class="${appView === 'compare'     ? 'active' : ''}">Compare</button>
+        </nav>
+        <div class="spacer"></div>
+        <span class="who">signed in as <strong>${escape(currentUser.name)}</strong></span>
+        <button id="logout" class="ghost">Log out</button>
+      </div>
+
+      <div class="card section" id="score-card" style="${appView === 'score' ? '' : 'display:none'}">
+        <h3>Your score <span class="date">${escape(formatLocalDate(date))}</span></h3>
+        <div class="desc">${score
+          ? `Saved ${escape(formatLocalDateTime(score.updated_at))} — edit anytime.`
+          : "Record one score per day. Either tap a value per question, or just enter your total."}</div>
+
+        <div class="tabs" role="tablist" style="max-width: 320px;">
+          <button data-smode="perq"  class="${scoreMode === 'perq'  ? 'active' : ''}">Per question</button>
+          <button data-smode="total" class="${scoreMode === 'total' ? 'active' : ''}">Just total</button>
+        </div>
+
+        <div id="score-form-perq"  style="${scoreMode === 'perq'  ? '' : 'display:none'}">
+          <div class="q-grid">
+            ${[1,2,3,4,5].map(n => {
+              const q = questions.find(x => x.number === n);
+              const v = score ? score[`q${n}_pts`] : null;
+              return `
+                <div class="q-cell">
+                  <div class="q-num">Q${n}</div>
+                  <div class="q-cat">${escape(q?.category || "")}</div>
+                  <input id="q${n}" class="score-cell" type="number" min="0" max="3" inputmode="numeric"
+                         value="${v ?? ""}" placeholder="0">
+                </div>
+              `;
+            }).join("")}
+          </div>
+          <div class="live-total">Computed total: <strong id="live-total">0</strong> / 15</div>
+        </div>
+
+        <div id="score-form-total" style="${scoreMode === 'total' ? '' : 'display:none'}">
+          <div class="total-row">
+            <label for="total-input">Total</label>
+            <input id="total-input" type="number" min="0" max="15" inputmode="numeric"
+                   value="${score && score.total_override !== null ? score.total_override : ''}"
+                   placeholder="0 – 15">
+            <span class="hint">/ 15</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="submit" id="save-btn">Save score</button>
+          ${score ? '<button class="ghost" id="clear-btn">Delete</button>' : ''}
+        </div>
+        <div class="err" id="score-err"></div>
+      </div>
+
+      <div class="card section" id="leaderboard-card" style="${appView === 'leaderboard' ? '' : 'display:none'}">
+        <h3>Leaderboard</h3>
+        <div class="lb-tabs">
+          <button data-lb="daily"   class="${lbView === 'daily'   ? 'active' : ''}">Today</button>
+          <button data-lb="total"   class="${lbView === 'total'   ? 'active' : ''}">All-time</button>
+          <button data-lb="average" class="${lbView === 'average' ? 'active' : ''}">Average</button>
+        </div>
+        <div id="lb-body"></div>
+      </div>
+
+      <div class="card section" id="compare-card" style="${appView === 'compare' ? '' : 'display:none'}">
+        <h3>Compare</h3>
+        <div class="desc">Pick users to put side by side. Green = won the day, red = lost, gray = no score.</div>
+        <div id="compare-body"></div>
+      </div>
+    </div>
+  `;
+
+  $("logout").addEventListener("click", onLogout);
+  for (const b of root.querySelectorAll('[data-view]')) {
+    b.addEventListener("click", () => switchAppView(b.dataset.view));
+  }
+  for (const b of root.querySelectorAll('[data-smode]')) {
+    b.addEventListener("click", () => switchScoreMode(b.dataset.smode));
+  }
+  for (const b of root.querySelectorAll('[data-lb]')) {
+    b.addEventListener("click", () => { lbView = b.dataset.lb; renderLeaderboard(lbDaily, lbTotal, lbAvg); });
+  }
+  for (const n of [1,2,3,4,5]) {
+    $("q" + n).addEventListener("input", recomputeLiveTotal);
+  }
+  $("save-btn").addEventListener("click", onSave);
+  const clr = $("clear-btn"); if (clr) clr.addEventListener("click", onDelete);
+
+  recomputeLiveTotal();
+  renderLeaderboard(lbDaily, lbTotal, lbAvg);
+}
+
+function switchAppView(v) {
+  appView = v;
+  for (const b of root.querySelectorAll('[data-view]')) {
+    b.classList.toggle("active", b.dataset.view === v);
+  }
+  $("score-card").style.display       = v === "score"       ? "" : "none";
+  $("leaderboard-card").style.display = v === "leaderboard" ? "" : "none";
+  $("compare-card").style.display     = v === "compare"     ? "" : "none";
+  if (v === "compare") loadCompare();
+}
+
+function switchScoreMode(m) {
+  scoreMode = m;
+  $("score-form-perq").style.display  = m === "perq"  ? "" : "none";
+  $("score-form-total").style.display = m === "total" ? "" : "none";
+  for (const b of root.querySelectorAll('[data-smode]')) {
+    b.classList.toggle("active", b.dataset.smode === m);
+  }
+}
+
+function recomputeLiveTotal() {
+  let total = 0;
+  for (const n of [1,2,3,4,5]) {
+    const v = parseInt($("q" + n).value, 10);
+    if (Number.isFinite(v) && v >= 0 && v <= 3) total += v;
+  }
+  $("live-total").textContent = String(total);
+}
+
+async function onSave() {
+  const errEl = $("score-err");
+  errEl.textContent = "";
+  const btn = $("save-btn"); btn.disabled = true;
+  try {
+    let payload;
+    if (scoreMode === "perq") {
+      const vals = [1,2,3,4,5].map(n => {
+        const raw = $("q" + n).value.trim();
+        if (raw === "") return null;
+        const v = parseInt(raw, 10);
+        if (!Number.isFinite(v) || v < 0 || v > 3) throw new Error(`Q${n} must be 0–3`);
+        return v;
+      });
+      if (vals.every(v => v === null)) throw new Error("Enter at least one question's score");
+      payload = { q_pts: vals, total_override: null };
+    } else {
+      const raw = $("total-input").value.trim();
+      if (raw === "") throw new Error("Enter a total");
+      const v = parseInt(raw, 10);
+      if (!Number.isFinite(v) || v < 0 || v > 15) throw new Error("Total must be 0–15");
+      payload = { q_pts: null, total_override: v };
+    }
+    await api("PUT", "/api/score", payload);
+    // Re-render: pulls the saved values + refreshed leaderboards.
+    await renderApp();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function onDelete() {
+  if (!confirm("Delete today's score?")) return;
+  await fetch("/api/score", { method: "DELETE" });
+  await renderApp();
+}
+
+function renderLeaderboard(lbDaily, lbTotal, lbAvg) {
+  for (const b of root.querySelectorAll('[data-lb]')) {
+    b.classList.toggle("active", b.dataset.lb === lbView);
+  }
+  const body = $("lb-body");
+  const meName = (currentUser?.name || "").toLowerCase();
+
+  let entries, columns, emptyMsg;
+  if (lbView === "daily") {
+    entries = lbDaily.entries;
+    emptyMsg = "No scores recorded yet for today.";
+    columns = [{ head: "Total", get: e => e.total }];
+  } else if (lbView === "total") {
+    entries = lbTotal.entries;
+    emptyMsg = "No scores recorded yet.";
+    columns = [
+      { head: "Total points", get: e => e.total_points },
+      { head: "Games",        get: e => e.games_played },
+    ];
+  } else {
+    entries = lbAvg.entries;
+    emptyMsg = "No scores recorded yet.";
+    columns = [
+      { head: "Avg",   get: e => Number(e.avg_total).toFixed(2) },
+      { head: "Games", get: e => e.games_played },
+    ];
+  }
+
+  if (!entries.length) {
+    body.innerHTML = `<div class="empty">${escape(emptyMsg)}</div>`;
+    return;
+  }
+  body.innerHTML = `
+    <table class="lb">
+      <thead><tr>
+        <th class="rank">#</th><th>Player</th>
+        ${columns.map(c => `<th class="num">${escape(c.head)}</th>`).join("")}
+      </tr></thead>
+      <tbody>${entries.map((e, i) => `
+        <tr class="${e.name === meName ? 'me' : ''}">
+          <td class="rank">${i + 1}</td>
+          <td>${escape(e.name)}</td>
+          ${columns.map(c => `<td class="num">${escape(c.get(e))}</td>`).join("")}
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+}
+
+/* ---------- COMPARE VIEW ---------- */
+
+const COMPARE_RANGES = [7, 14, 30, 90];
+
+async function loadCompare() {
+  const body = $("compare-body");
+  body.innerHTML = '<div class="empty" style="color:var(--muted);padding:24px 0">Loading…</div>';
+
+  const allUsers = (await api("GET", "/api/users")).users.map(u => u.name);
+
+  // On first visit, default to selecting everyone.
+  if (compareState.users === null) compareState.users = [...allUsers];
+  // Drop any user that no longer exists.
+  compareState.users = compareState.users.filter(n => allUsers.includes(n));
+
+  const selected = compareState.users;
+  let data = { dates: [], users: [], scores: {} };
+  if (selected.length) {
+    const qs = `days=${compareState.days}&users=${selected.map(encodeURIComponent).join(",")}`;
+    data = await api("GET", `/api/compare?${qs}`);
+  }
+
+  // Compute winner(s) per day among selected users.
+  const winnersByDate = {};
+  for (const date of data.dates) {
+    const values = selected
+      .map(u => data.scores[u]?.[date])
+      .filter(v => v !== undefined && v !== null);
+    winnersByDate[date] = values.length ? Math.max(...values) : null;
+  }
+
+  body.innerHTML = `
+    <div class="cmp-controls">
+      <div class="cmp-users">
+        ${allUsers.map(name => `
+          <label>
+            <input type="checkbox" data-user="${escape(name)}"
+                   ${selected.includes(name) ? "checked" : ""}>
+            ${escape(name)}
+          </label>`).join("")}
+      </div>
+      <div class="cmp-range">
+        ${COMPARE_RANGES.map(d => `
+          <button data-days="${d}" class="${compareState.days === d ? "active" : ""}">${d} days</button>
+        `).join("")}
+      </div>
+    </div>
+    ${selected.length === 0
+      ? '<div class="empty" style="color:var(--muted);padding:24px 0;text-align:center">Pick at least one user above.</div>'
+      : `
+      <div class="cmp-wrap">
+        <table class="cmp-grid">
+          <thead>
+            <tr>
+              <th class="cmp-date">Date</th>
+              ${selected.map(u => `<th>${escape(u)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${data.dates.map(date => {
+              const winner = winnersByDate[date];
+              return `
+              <tr>
+                <td class="cmp-date">${escape(formatLocalDate(date))}</td>
+                ${selected.map(u => {
+                  const s = data.scores[u]?.[date];
+                  if (s === undefined || s === null) {
+                    return `<td class="cmp-empty">—</td>`;
+                  }
+                  const cls = (s === winner) ? "cmp-win" : "cmp-lose";
+                  return `<td class="${cls}">${s}</td>`;
+                }).join("")}
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>`
+    }
+  `;
+
+  // Wire control handlers.
+  for (const ch of body.querySelectorAll('input[data-user]')) {
+    ch.addEventListener("change", () => {
+      const picked = [...body.querySelectorAll('input[data-user]:checked')].map(c => c.dataset.user);
+      compareState.users = picked;
+      loadCompare();
+    });
+  }
+  for (const b of body.querySelectorAll('button[data-days]')) {
+    b.addEventListener("click", () => {
+      compareState.days = parseInt(b.dataset.days, 10);
+      loadCompare();
+    });
+  }
+}
+
+async function onLogout() {
+  await fetch("/api/logout", { method: "POST" });
+  currentUser = null;
+  mode = "login";
+  renderAuth();
+}
+
+async function init() {
+  try {
+    const d = await api("GET", "/api/me");
+    currentUser = d.user;
+  } catch {}
+  if (currentUser) await renderApp();
+  else renderAuth();
+}
+
+init();
+</script>
+</body>
+</html>
