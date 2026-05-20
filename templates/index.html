@@ -119,6 +119,111 @@
   .topbar .who { color: var(--muted); font-size: 13px; }
   .topbar .who strong { color: var(--ink); }
 
+  /* Avatar (used in topbar + stats modal) */
+  .avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--accent); color: white;
+    font-weight: 700; font-size: 14px; text-transform: uppercase;
+    line-height: 1;
+    border: 0; padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  img.avatar { background: transparent; }
+  button.avatar:hover, button.avatar:focus-visible {
+    outline: 2px solid var(--accent-dim); outline-offset: 2px;
+  }
+  /* Deterministic letter-bg colors per first character */
+  .avatar.c-a, .avatar.c-h, .avatar.c-o, .avatar.c-v { background: #b3203b; }
+  .avatar.c-b, .avatar.c-i, .avatar.c-p, .avatar.c-w { background: #f08a24; }
+  .avatar.c-c, .avatar.c-j, .avatar.c-q, .avatar.c-x { background: #2e6c8c; }
+  .avatar.c-d, .avatar.c-k, .avatar.c-r, .avatar.c-y { background: #5a8c3d; }
+  .avatar.c-e, .avatar.c-l, .avatar.c-s, .avatar.c-z { background: #7a3d8c; }
+  .avatar.c-f, .avatar.c-m, .avatar.c-t           { background: #c25c5c; }
+  .avatar.c-g, .avatar.c-n, .avatar.c-u           { background: #4a7a9c; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none; align-items: flex-start; justify-content: center;
+    z-index: 1000; padding: 40px 16px; overflow-y: auto;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-card {
+    background: var(--card); border-radius: 16px;
+    padding: 22px 22px 24px;
+    max-width: 480px; width: 100%;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+  }
+  .modal-close {
+    position: absolute; top: 10px; right: 12px;
+    background: transparent; border: 0; font-size: 24px; color: var(--muted);
+    cursor: pointer; padding: 0; line-height: 1;
+  }
+  .profile-head {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border); margin-bottom: 16px;
+  }
+  .profile-head .avatar { width: 96px; height: 96px; font-size: 40px; cursor: default; }
+  .profile-head .profile-name { font-size: 20px; font-weight: 700; }
+  .profile-actions { display: flex; gap: 8px; }
+  .profile-actions label, .profile-actions button {
+    font: inherit; font-size: 13px;
+    padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: white;
+    cursor: pointer; user-select: none;
+  }
+  .profile-actions input[type="file"] { display: none; }
+
+  .stats-summary {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 18px;
+  }
+  .stat {
+    background: #fff7e6; border-radius: 10px;
+    padding: 12px; text-align: center;
+  }
+  .stat-num {
+    font-size: 22px; font-weight: 700; line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-top: 4px; font-weight: 700;
+  }
+  .best-day {
+    background: #fff7e6; border-radius: 10px; padding: 10px 14px;
+    font-size: 14px; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .best-day .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .best-day .val { font-weight: 700; }
+
+  .profile-cats {
+    width: 100%; border-collapse: collapse; font-size: 14px;
+  }
+  .profile-cats th, .profile-cats td {
+    text-align: left; padding: 7px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .profile-cats th { font-size: 11px; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; }
+  .profile-cats .num {
+    text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .profile-cats tr:last-child td { border-bottom: 0; }
+
   .nav {
     display: flex; gap: 4px; background: #f1ece1;
     border-radius: 999px; padding: 3px;
@@ -302,6 +407,23 @@
   .cmp-grid .cmp-lose  { background: #f8d8d4; color: #8e1c2e; }
   .cmp-grid .cmp-empty { background: #f1ece1; color: #b3a99a; }
 
+  /* Category filter (used inside Leaderboard's Category sub-tab) */
+  .cat-filters {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+  }
+  .cat-filters button {
+    background: #f1ece1; color: var(--ink);
+    border: 1px solid transparent; border-radius: 999px;
+    padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; user-select: none; line-height: 1.2;
+    transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .cat-filters button:hover { border-color: rgba(0,0,0,0.12); }
+  .cat-filters button.active { background: var(--accent); color: white; }
+  .cat-filters button .cnt {
+    margin-left: 6px; opacity: 0.7; font-weight: 400; font-size: 12px;
+  }
+
   /* Logged-in welcome */
   .welcome { text-align: center; }
   .welcome .hello { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
@@ -359,6 +481,17 @@
     .card.auth { padding: 22px 18px; }
     .brand h1 { font-size: 22px; }
   }
+
+  /* Modal on mobile: full-width minus a small margin, larger close target. */
+  @media (max-width: 640px) {
+    .modal-overlay { padding: 20px 12px; }
+    .modal-card { padding: 18px 16px 20px; }
+    .stats-summary { gap: 8px; }
+    .stat { padding: 10px 6px; }
+    .stat-num { font-size: 18px; }
+    .profile-head .avatar { width: 80px; height: 80px; font-size: 32px; }
+    .profile-actions { flex-wrap: wrap; justify-content: center; }
+  }
 </style>
 </head>
 <body>
@@ -370,11 +503,29 @@ let currentUser = null;
 let mode = "login";          // auth tab
 let appView = "leaderboard"; // "score" | "leaderboard" | "compare"
 let scoreMode = "perq";      // "perq" | "total"
-let lbView = "daily";        // "daily" | "total" | "average"
+let lbView = "daily";        // "daily" | "total" | "average" | "category"
+let lbCategory = null;       // selected category for the Category sub-tab
 let compareState = { users: null, days: 7 };  // users=null means "select all on first load"
 
 const escape = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const $ = (id) => document.getElementById(id);
+
+/* Avatar markup: uses uploaded image if present, otherwise a colored
+   letter circle keyed on the user's first character. Wrap as a button
+   when interactive, otherwise a span. */
+function avatarHTML(user, opts = {}) {
+  const interactive = !!opts.button;
+  const tag = interactive ? "button" : "span";
+  const id = opts.id ? ` id="${opts.id}"` : "";
+  if (user && user.avatar_url) {
+    return `<${tag} class="avatar"${id} type="${interactive ? "button" : ""}">
+              <img src="${escape(user.avatar_url)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">
+            </${tag}>`;
+  }
+  const letter = (user?.name || "?").charAt(0).toLowerCase();
+  const colorClass = /[a-z]/.test(letter) ? `c-${letter}` : "";
+  return `<${tag} class="avatar ${colorClass}"${id} type="${interactive ? "button" : ""}">${escape(letter.toUpperCase())}</${tag}>`;
+}
 
 // SQLite stores updated_at via datetime('now'), which is UTC in "YYYY-MM-DD HH:MM:SS".
 function formatLocalDateTime(utcString) {
@@ -491,7 +642,7 @@ async function renderApp() {
           <button data-view="compare"     class="${appView === 'compare'     ? 'active' : ''}">Compare</button>
         </nav>
         <div class="spacer"></div>
-        <span class="who">signed in as <strong>${escape(currentUser.name)}</strong></span>
+        ${avatarHTML(currentUser, { button: true, id: "topbar-avatar" })}
         <button id="logout" class="ghost">Log out</button>
       </div>
 
@@ -544,9 +695,10 @@ async function renderApp() {
       <div class="card section" id="leaderboard-card" style="${appView === 'leaderboard' ? '' : 'display:none'}">
         <h3>Leaderboard</h3>
         <div class="lb-tabs">
-          <button data-lb="daily"   class="${lbView === 'daily'   ? 'active' : ''}">Today</button>
-          <button data-lb="total"   class="${lbView === 'total'   ? 'active' : ''}">All-time</button>
-          <button data-lb="average" class="${lbView === 'average' ? 'active' : ''}">Average</button>
+          <button data-lb="daily"    class="${lbView === 'daily'    ? 'active' : ''}">Today</button>
+          <button data-lb="total"    class="${lbView === 'total'    ? 'active' : ''}">All-time</button>
+          <button data-lb="average"  class="${lbView === 'average'  ? 'active' : ''}">Average</button>
+          <button data-lb="category" class="${lbView === 'category' ? 'active' : ''}">Category</button>
         </div>
         <div id="lb-body"></div>
       </div>
@@ -556,10 +708,22 @@ async function renderApp() {
         <div class="desc">Pick users to put side by side. Green = won the day, red = lost, gray = no score.</div>
         <div id="compare-body"></div>
       </div>
+
+    </div>
+    <div class="modal-overlay" id="profile-modal">
+      <div class="modal-card" id="profile-modal-card">
+        <button class="modal-close" id="profile-close" aria-label="Close">×</button>
+        <div id="profile-body"></div>
+      </div>
     </div>
   `;
 
   $("logout").addEventListener("click", onLogout);
+  $("topbar-avatar").addEventListener("click", openProfile);
+  $("profile-close").addEventListener("click", closeProfile);
+  $("profile-modal").addEventListener("click", (e) => {
+    if (e.target.id === "profile-modal") closeProfile();
+  });
   for (const b of root.querySelectorAll('[data-view]')) {
     b.addEventListener("click", () => switchAppView(b.dataset.view));
   }
@@ -617,12 +781,11 @@ async function onSave() {
     if (scoreMode === "perq") {
       const vals = [1,2,3,4,5].map(n => {
         const raw = $("q" + n).value.trim();
-        if (raw === "") return null;
+        if (raw === "") return 0;
         const v = parseInt(raw, 10);
         if (!Number.isFinite(v) || v < 0 || v > 3) throw new Error(`Q${n} must be 0–3`);
         return v;
       });
-      if (vals.every(v => v === null)) throw new Error("Enter at least one question's score");
       payload = { q_pts: vals, total_override: null };
     } else {
       const raw = $("total-input").value.trim();
@@ -650,6 +813,10 @@ async function onDelete() {
 function renderLeaderboard(lbDaily, lbTotal, lbAvg) {
   for (const b of root.querySelectorAll('[data-lb]')) {
     b.classList.toggle("active", b.dataset.lb === lbView);
+  }
+  if (lbView === "category") {
+    loadCategoryLeaderboard();
+    return;
   }
   const body = $("lb-body");
   const meName = (currentUser?.name || "").toLowerCase();
@@ -693,6 +860,62 @@ function renderLeaderboard(lbDaily, lbTotal, lbAvg) {
         </tr>`).join("")}
       </tbody>
     </table>`;
+}
+
+async function loadCategoryLeaderboard() {
+  const body = $("lb-body");
+  body.innerHTML = '<div class="empty" style="color:var(--muted);padding:24px 0;text-align:center">Loading…</div>';
+
+  const cats = (await api("GET", "/api/categories")).categories;
+  if (!cats.length) {
+    body.innerHTML = '<div class="empty">No category data yet — questions need to be scraped first.</div>';
+    return;
+  }
+  if (lbCategory === null || !cats.some(c => c.category === lbCategory)) {
+    lbCategory = cats[0].category;
+  }
+
+  const lbData = await api(
+    "GET",
+    `/api/leaderboard/category?category=${encodeURIComponent(lbCategory)}`,
+  );
+
+  const meName = (currentUser?.name || "").toLowerCase();
+  const rowsHTML = lbData.entries.length
+    ? `<table class="lb">
+        <thead><tr>
+          <th class="rank">#</th><th>Player</th>
+          <th class="num">Avg</th><th class="num">Games</th>
+        </tr></thead>
+        <tbody>${lbData.entries.map((e, i) => `
+          <tr class="${e.name === meName ? 'me' : ''}">
+            <td class="rank">${i + 1}</td>
+            <td>${escape(e.name)}</td>
+            <td class="num">${Number(e.avg_pts).toFixed(2)}</td>
+            <td class="num">${e.games_played}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`
+    : '<div class="empty" style="color:var(--muted);padding:16px 0;text-align:center">No per-question scores recorded for this category yet.</div>';
+
+  body.innerHTML = `
+    <div class="cat-filters">
+      ${cats.map(c => `
+        <button data-cat="${escape(c.category)}"
+                class="${c.category === lbCategory ? 'active' : ''}">
+          ${escape(c.category)} <span class="cnt">${c.count}</span>
+        </button>
+      `).join("")}
+    </div>
+    ${rowsHTML}
+  `;
+
+  for (const b of body.querySelectorAll('[data-cat]')) {
+    b.addEventListener("click", () => {
+      lbCategory = b.dataset.cat;
+      loadCategoryLeaderboard();
+    });
+  }
 }
 
 /* ---------- COMPARE VIEW ---------- */
@@ -789,6 +1012,117 @@ async function loadCompare() {
       loadCompare();
     });
   }
+}
+
+/* ---------- PROFILE / STATS MODAL ---------- */
+
+function openProfile() {
+  $("profile-modal").classList.add("open");
+  renderProfile();  // fetches stats and paints body
+}
+
+function closeProfile() {
+  $("profile-modal").classList.remove("open");
+}
+
+async function renderProfile() {
+  const body = $("profile-body");
+  body.innerHTML = '<div class="empty" style="color:var(--muted);padding:24px 0;text-align:center">Loading…</div>';
+
+  const stats = await api("GET", "/api/me/stats");
+  const u = currentUser;
+
+  const summaryHTML = `
+    <div class="stats-summary">
+      <div class="stat">
+        <div class="stat-num">${stats.games_played}</div>
+        <div class="stat-label">Games</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">${stats.total_points}</div>
+        <div class="stat-label">Total pts</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">${stats.avg_total !== null ? Number(stats.avg_total).toFixed(2) : "—"}</div>
+        <div class="stat-label">Avg / day</div>
+      </div>
+    </div>`;
+
+  const bestHTML = stats.best_day ? `
+    <div class="best-day">
+      <span class="lbl">Best day</span>
+      <span class="val">${escape(formatLocalDate(stats.best_day.game_date))} · ${stats.best_day.total} pts</span>
+    </div>` : "";
+
+  const catRowsHTML = stats.per_category.length
+    ? `<h4 style="margin:14px 0 8px;font-size:14px">Per category</h4>
+       <table class="profile-cats">
+         <thead><tr><th>Category</th><th class="num">Avg</th><th class="num">Games</th></tr></thead>
+         <tbody>${stats.per_category.map(c => `
+           <tr>
+             <td>${escape(c.category)}</td>
+             <td class="num">${Number(c.avg_pts).toFixed(2)}</td>
+             <td class="num">${c.games_played}</td>
+           </tr>`).join("")}
+         </tbody>
+       </table>`
+    : (stats.games_played
+        ? '<div style="color:var(--muted);font-size:13px;margin-top:14px">Per-category breakdown is only computed from per-question scores — entered totals don\'t contribute.</div>'
+        : '');
+
+  body.innerHTML = `
+    <div class="profile-head">
+      ${avatarHTML(u, { button: false })}
+      <div class="profile-name">${escape(u.name)}</div>
+      <div class="profile-actions">
+        <label>
+          <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/gif,image/webp">
+          ${u.avatar_url ? "Change picture" : "Upload picture"}
+        </label>
+        ${u.avatar_url ? '<button id="avatar-clear" type="button">Remove</button>' : ""}
+      </div>
+      <div class="err" id="avatar-err" style="font-size:12px"></div>
+    </div>
+    ${summaryHTML}
+    ${bestHTML}
+    ${catRowsHTML}
+  `;
+
+  $("avatar-input").addEventListener("change", onAvatarPick);
+  const clr = $("avatar-clear");
+  if (clr) clr.addEventListener("click", onAvatarClear);
+}
+
+async function onAvatarPick(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const errEl = $("avatar-err");
+  errEl.textContent = "";
+  if (file.size > 2 * 1024 * 1024) {
+    errEl.textContent = "File too large (max 2 MB).";
+    return;
+  }
+  const fd = new FormData();
+  fd.append("file", file);
+  const resp = await fetch("/api/avatar", { method: "POST", body: fd });
+  const data = await resp.json();
+  if (!resp.ok) {
+    errEl.textContent = data.error || "Upload failed";
+    return;
+  }
+  currentUser = data.user;
+  // Re-render topbar (so the avatar updates) AND the modal body.
+  await renderApp();
+  openProfile();
+}
+
+async function onAvatarClear() {
+  const resp = await fetch("/api/avatar", { method: "DELETE" });
+  const data = await resp.json();
+  if (!resp.ok) return;
+  currentUser = data.user;
+  await renderApp();
+  openProfile();
 }
 
 async function onLogout() {

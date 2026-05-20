@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
     name        TEXT    NOT NULL UNIQUE,
     pin_salt    TEXT    NOT NULL,
     pin_hash    TEXT    NOT NULL,
+    avatar_path TEXT,                                  -- relative to static/, e.g. 'avatars/1_abc.png'
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -80,6 +81,15 @@ def connect(path: Path | str = DB_PATH) -> sqlite3.Connection:
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    # Migration: add avatar_path to existing users tables that don't have it.
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "avatar_path" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN avatar_path TEXT")
+    conn.commit()
+
+
+def set_avatar_path(conn: sqlite3.Connection, user_id: int, path: Optional[str]) -> None:
+    conn.execute("UPDATE users SET avatar_path = ? WHERE id = ?", (path, user_id))
     conn.commit()
 
 
@@ -131,7 +141,9 @@ def verify_user(conn: sqlite3.Connection, name: str, pin: str) -> Optional[int]:
 
 
 def get_user(conn: sqlite3.Connection, user_id: int) -> Optional[sqlite3.Row]:
-    return conn.execute("SELECT id, name, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
+    return conn.execute(
+        "SELECT id, name, avatar_path, created_at FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
 
 
 def upsert_question(
@@ -261,6 +273,122 @@ def leaderboard_for_date(conn: sqlite3.Connection, game_date: str) -> list[dict]
         ORDER BY total DESC, u.name COLLATE NOCASE
         """,
         (game_date,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def user_stats(conn: sqlite3.Connection, user_id: int) -> dict:
+    """Personal stats for one user: totals, averages, per-category breakdown."""
+    summary_row = conn.execute(
+        f"""
+        SELECT COUNT(d.id)               AS games_played,
+               COALESCE(SUM({_EFFECTIVE_TOTAL_SQL}), 0) AS total_points,
+               AVG({_EFFECTIVE_TOTAL_SQL} * 1.0)        AS avg_total
+        FROM daily_scores d
+        WHERE d.user_id = ?
+        """,
+        (user_id,),
+    ).fetchone()
+
+    best_day = conn.execute(
+        f"""
+        SELECT d.game_date,
+               {_EFFECTIVE_TOTAL_SQL} AS total
+        FROM daily_scores d
+        WHERE d.user_id = ?
+        ORDER BY total DESC, d.game_date DESC
+        LIMIT 1
+        """,
+        (user_id,),
+    ).fetchone()
+
+    per_category = conn.execute(
+        """
+        WITH category_points AS (
+          SELECT q.category,
+                 CASE q.question_number
+                   WHEN 1 THEN d.q1_pts
+                   WHEN 2 THEN d.q2_pts
+                   WHEN 3 THEN d.q3_pts
+                   WHEN 4 THEN d.q4_pts
+                   WHEN 5 THEN d.q5_pts
+                 END AS pts
+          FROM daily_scores d
+          JOIN questions    q ON q.game_date = d.game_date
+          WHERE d.user_id = ?
+            AND d.total_override IS NULL
+        )
+        SELECT category,
+               AVG(pts * 1.0) AS avg_pts,
+               COUNT(pts)     AS games_played
+        FROM category_points
+        WHERE pts IS NOT NULL
+        GROUP BY category
+        ORDER BY avg_pts DESC, category COLLATE NOCASE
+        """,
+        (user_id,),
+    ).fetchall()
+
+    return {
+        "games_played": summary_row["games_played"] or 0,
+        "total_points": summary_row["total_points"] or 0,
+        "avg_total":    summary_row["avg_total"],     # may be None if no games
+        "best_day":     dict(best_day) if best_day else None,
+        "per_category": [dict(r) for r in per_category],
+    }
+
+
+def leaderboard_by_category(
+    conn: sqlite3.Connection,
+    category: str,
+) -> list[dict]:
+    """Average points per user on questions of one category.
+
+    Only per-question scores contribute. Rows where `total_override` is set
+    are excluded (no per-category breakdown is recoverable). NULL qN_pts are
+    treated as "not recorded" and excluded from the average; explicit 0
+    counts (the user logged a zero that day).
+    """
+    rows = conn.execute(
+        """
+        WITH category_points AS (
+          SELECT u.name,
+                 CASE q.question_number
+                   WHEN 1 THEN d.q1_pts
+                   WHEN 2 THEN d.q2_pts
+                   WHEN 3 THEN d.q3_pts
+                   WHEN 4 THEN d.q4_pts
+                   WHEN 5 THEN d.q5_pts
+                 END AS pts
+          FROM users u
+          JOIN daily_scores d ON d.user_id = u.id
+          JOIN questions    q ON q.game_date = d.game_date
+          WHERE d.total_override IS NULL
+            AND q.category = ?
+        )
+        SELECT name,
+               AVG(pts * 1.0) AS avg_pts,
+               COUNT(pts)     AS games_played
+        FROM category_points
+        WHERE pts IS NOT NULL
+        GROUP BY name
+        ORDER BY avg_pts DESC, name COLLATE NOCASE
+        """,
+        (category,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_categories(conn: sqlite3.Connection) -> list[dict]:
+    """Distinct categories with how many questions have each one."""
+    rows = conn.execute(
+        """
+        SELECT category, COUNT(*) AS count
+        FROM questions
+        WHERE category IS NOT NULL AND category != ''
+        GROUP BY category
+        ORDER BY count DESC, category COLLATE NOCASE
+        """
     ).fetchall()
     return [dict(r) for r in rows]
 

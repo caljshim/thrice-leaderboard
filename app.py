@@ -21,6 +21,7 @@ from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from flask import Flask, g, jsonify, render_template, request, session
+from werkzeug.utils import secure_filename
 
 import db
 from scraper import scrape, ScrapeError
@@ -51,7 +52,12 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=dt.timedelta(days=30),
+    MAX_CONTENT_LENGTH=2 * 1024 * 1024,  # 2 MB upload cap
 )
+
+AVATAR_DIR = BASE_DIR / "static" / "avatars"
+AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+ALLOWED_AVATAR_EXTS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 # ─── DB plumbing ────────────────────────────────────────────────────────────
 
@@ -173,6 +179,10 @@ def current_user_id() -> int | None:
     return session.get("user_id")
 
 
+def _avatar_url_for(path: str | None) -> str | None:
+    return f"/static/{path}" if path else None
+
+
 def current_user() -> dict | None:
     uid = current_user_id()
     if uid is None:
@@ -181,7 +191,11 @@ def current_user() -> dict | None:
     if row is None:
         session.clear()
         return None
-    return {"id": row["id"], "name": row["name"]}
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "avatar_url": _avatar_url_for(row["avatar_path"]),
+    }
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────
@@ -209,7 +223,7 @@ def api_signup():
         return jsonify({"error": str(e)}), 400
     session.permanent = True
     session["user_id"] = uid
-    return jsonify({"user": {"id": uid, "name": name.lower()}})
+    return jsonify({"user": current_user()})
 
 
 @app.route("/api/login", methods=["POST"])
@@ -222,13 +236,83 @@ def api_login():
         return jsonify({"error": "invalid username or PIN"}), 401
     session.permanent = True
     session["user_id"] = uid
-    return jsonify({"user": {"id": uid, "name": name.strip().lower()}})
+    return jsonify({"user": current_user()})
 
 
 @app.route("/api/logout", methods=["POST"])
 def api_logout():
     session.clear()
     return jsonify({"ok": True})
+
+
+@app.route("/api/avatar", methods=["POST"])
+def api_avatar_upload():
+    uid = current_user_id()
+    if uid is None:
+        return jsonify({"error": "not signed in"}), 401
+    file = request.files.get("file")
+    if file is None or not file.filename:
+        return jsonify({"error": "no file"}), 400
+
+    fname = secure_filename(file.filename).lower()
+    ext = fname.rsplit(".", 1)[-1] if "." in fname else ""
+    if ext not in ALLOWED_AVATAR_EXTS:
+        return jsonify({"error": f"unsupported file type: .{ext or '?'}"}), 400
+
+    # Verify it actually looks like an image (header sniff — defends against
+    # someone uploading a text file with .png renamed on).
+    header = file.stream.read(16)
+    file.stream.seek(0)
+    sigs = (
+        b"\x89PNG\r\n\x1a\n",   # png
+        b"\xff\xd8\xff",         # jpeg
+        b"GIF87a", b"GIF89a",    # gif
+        b"RIFF",                 # webp (RIFF...WEBP)
+    )
+    if not any(header.startswith(s) for s in sigs):
+        return jsonify({"error": "file does not look like an image"}), 400
+
+    # Delete any prior avatar for this user.
+    conn = get_conn()
+    prior = db.get_user(conn, uid)
+    if prior and prior["avatar_path"]:
+        prior_full = BASE_DIR / "static" / prior["avatar_path"]
+        try:
+            prior_full.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    suffix = secrets.token_hex(6)
+    new_name = f"{uid}_{suffix}.{ext}"
+    file.save(AVATAR_DIR / new_name)
+    db.set_avatar_path(conn, uid, f"avatars/{new_name}")
+
+    return jsonify({"user": current_user()})
+
+
+@app.route("/api/avatar", methods=["DELETE"])
+def api_avatar_clear():
+    uid = current_user_id()
+    if uid is None:
+        return jsonify({"error": "not signed in"}), 401
+    conn = get_conn()
+    row = db.get_user(conn, uid)
+    if row and row["avatar_path"]:
+        full = BASE_DIR / "static" / row["avatar_path"]
+        try:
+            full.unlink(missing_ok=True)
+        except OSError:
+            pass
+    db.set_avatar_path(conn, uid, None)
+    return jsonify({"user": current_user()})
+
+
+@app.route("/api/me/stats")
+def api_me_stats():
+    uid = current_user_id()
+    if uid is None:
+        return jsonify({"error": "not signed in"}), 401
+    return jsonify(db.user_stats(get_conn(), uid))
 
 
 def _require_user_id() -> int | None:
@@ -308,6 +392,11 @@ def api_leaderboard_daily():
     return jsonify({"game_date": date, "entries": rows})
 
 
+@app.route("/api/categories")
+def api_categories():
+    return jsonify({"categories": db.list_categories(get_conn())})
+
+
 @app.route("/api/users")
 def api_users():
     rows = db.list_users(get_conn())
@@ -357,6 +446,15 @@ def api_leaderboard_total():
 def api_leaderboard_average():
     rows = db.leaderboard_by_average(get_conn())
     return jsonify({"entries": rows})
+
+
+@app.route("/api/leaderboard/category")
+def api_leaderboard_category():
+    category = request.args.get("category")
+    if not category:
+        return jsonify({"error": "category is required"}), 400
+    rows = db.leaderboard_by_category(get_conn(), category)
+    return jsonify({"category": category, "entries": rows})
 
 
 @app.route("/api/scrape")
