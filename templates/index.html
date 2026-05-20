@@ -134,6 +134,9 @@
     overflow: hidden;
   }
   img.avatar { background: transparent; }
+  /* When an uploaded photo doesn't fully fill the circle (transparency or
+     letterbox), show a neutral cream rather than the accent red. */
+  .avatar:has(img) { background: #f1ece1; }
   button.avatar:hover, button.avatar:focus-visible {
     outline: 2px solid var(--accent-dim); outline-offset: 2px;
   }
