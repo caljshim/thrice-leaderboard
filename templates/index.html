@@ -270,6 +270,59 @@
   .welcome { text-align: center; }
   .welcome .hello { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
   .welcome .name { color: var(--accent); }
+
+  /* ────────────────────────────────────────────────────────────────
+     Mobile (≤ 640px) — stack cards vertically, tighten paddings.
+     ──────────────────────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    main { padding: 12px 12px 56px; }
+
+    /* Topbar reflows: title + log out on row 1, nav on its own row,
+       "signed in as" muted text below that. */
+    .topbar { padding: 10px 12px; gap: 8px 12px; }
+    .topbar h2 { font-size: 17px; }
+    .topbar .spacer { display: none; }
+    .topbar .nav { order: 5; flex-basis: 100%; justify-content: center; display: flex; }
+    .topbar .who { order: 4; flex-basis: 100%; font-size: 12px; }
+
+    .section { padding: 16px 14px; }
+    .section h3 { font-size: 15px; }
+    .section .desc { font-size: 12px; }
+
+    /* Score card: 5 question cells stack vertically. */
+    .q-grid { grid-template-columns: 1fr; gap: 8px; }
+    .q-cell { display: grid; grid-template-columns: 56px 1fr 64px; align-items: center;
+              text-align: left; gap: 10px; padding: 10px 12px; }
+    .q-cell .q-num { text-align: center; }
+    .q-cell .q-cat { min-height: 0; margin: 0; text-align: left; }
+    .q-cell input.score-cell { width: 64px; margin: 0 0 0 auto; }
+    .live-total { text-align: left; }
+
+    .total-row { flex-wrap: wrap; }
+
+    .actions { flex-direction: column-reverse; }
+    .actions .submit { width: 100%; }
+    .actions .ghost  { width: 100%; }
+
+    /* Auth tabs / score-mode tabs: ensure they shrink. */
+    .tabs button { padding: 8px 8px; font-size: 14px; }
+
+    /* Leaderboard table — keep numeric columns tight. */
+    .lb th, .lb td { padding: 8px 6px; }
+    .lb { font-size: 13px; }
+
+    /* Compare controls stack: users above range. cmp-grid scrolls horizontally. */
+    .cmp-controls { flex-direction: column; align-items: stretch; gap: 10px; }
+    .cmp-range { align-self: flex-start; }
+    .cmp-grid th, .cmp-grid td { padding: 6px 8px; min-width: 44px; }
+    .cmp-grid .cmp-date { font-size: 11px; }
+  }
+
+  /* Very narrow (≤ 360px): drop the auth card padding a notch. */
+  @media (max-width: 360px) {
+    .card.auth { padding: 22px 18px; }
+    .brand h1 { font-size: 22px; }
+  }
 </style>
 </head>
 <body>
