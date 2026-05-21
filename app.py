@@ -183,6 +183,16 @@ def _avatar_url_for(path: str | None) -> str | None:
     return f"/static/{path}" if path else None
 
 
+def _with_avatar_url(entries: list[dict]) -> list[dict]:
+    """Translate avatar_path → avatar_url for a list of leaderboard rows."""
+    out = []
+    for e in entries:
+        e = dict(e)
+        e["avatar_url"] = _avatar_url_for(e.pop("avatar_path", None))
+        out.append(e)
+    return out
+
+
 def current_user() -> dict | None:
     uid = current_user_id()
     if uid is None:
@@ -389,7 +399,7 @@ def api_score_delete():
 def api_leaderboard_daily():
     date = request.args.get("date") or _today()
     rows = db.leaderboard_for_date(get_conn(), date)
-    return jsonify({"game_date": date, "entries": rows})
+    return jsonify({"game_date": date, "entries": _with_avatar_url(rows)})
 
 
 @app.route("/api/categories")
@@ -439,13 +449,13 @@ def api_compare():
 @app.route("/api/leaderboard/total")
 def api_leaderboard_total():
     rows = db.leaderboard_by_total(get_conn())
-    return jsonify({"entries": rows})
+    return jsonify({"entries": _with_avatar_url(rows)})
 
 
 @app.route("/api/leaderboard/average")
 def api_leaderboard_average():
     rows = db.leaderboard_by_average(get_conn())
-    return jsonify({"entries": rows})
+    return jsonify({"entries": _with_avatar_url(rows)})
 
 
 @app.route("/api/leaderboard/category")
@@ -454,7 +464,7 @@ def api_leaderboard_category():
     if not category:
         return jsonify({"error": "category is required"}), 400
     rows = db.leaderboard_by_category(get_conn(), category)
-    return jsonify({"category": category, "entries": rows})
+    return jsonify({"category": category, "entries": _with_avatar_url(rows)})
 
 
 @app.route("/api/scrape")

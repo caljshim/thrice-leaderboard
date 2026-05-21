@@ -265,6 +265,7 @@ def leaderboard_for_date(conn: sqlite3.Connection, game_date: str) -> list[dict]
     rows = conn.execute(
         f"""
         SELECT u.name,
+               u.avatar_path,
                {_EFFECTIVE_TOTAL_SQL} AS total,
                (d.total_override IS NOT NULL) AS used_total_override
         FROM daily_scores d
@@ -353,6 +354,7 @@ def leaderboard_by_category(
         """
         WITH category_points AS (
           SELECT u.name,
+                 u.avatar_path,
                  CASE q.question_number
                    WHEN 1 THEN d.q1_pts
                    WHEN 2 THEN d.q2_pts
@@ -367,8 +369,9 @@ def leaderboard_by_category(
             AND q.category = ?
         )
         SELECT name,
-               AVG(pts * 1.0) AS avg_pts,
-               COUNT(pts)     AS games_played
+               MAX(avatar_path)  AS avatar_path,
+               AVG(pts * 1.0)    AS avg_pts,
+               COUNT(pts)        AS games_played
         FROM category_points
         WHERE pts IS NOT NULL
         GROUP BY name
@@ -429,6 +432,7 @@ def leaderboard_by_total(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
         f"""
         SELECT u.name,
+               u.avatar_path,
                COUNT(d.id)                       AS games_played,
                SUM({_EFFECTIVE_TOTAL_SQL})       AS total_points
         FROM users u
@@ -444,6 +448,7 @@ def leaderboard_by_average(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
         f"""
         SELECT u.name,
+               u.avatar_path,
                COUNT(d.id) AS games_played,
                AVG({_EFFECTIVE_TOTAL_SQL} * 1.0) AS avg_total,
                SUM({_EFFECTIVE_TOTAL_SQL})      AS total_points

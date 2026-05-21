@@ -108,16 +108,14 @@
      min-width:0, a wide table forces the card to grow past the viewport. */
   .app > .card { min-width: 0; }
   .topbar {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
     padding: 10px 14px;
     background: var(--card); border: 1px solid var(--border);
     border-radius: 14px;
     flex-wrap: wrap;
   }
   .topbar h2 { margin: 0; font-size: 18px; }
-  .topbar .spacer { flex: 1; }
-  .topbar .who { color: var(--muted); font-size: 13px; }
-  .topbar .who strong { color: var(--ink); }
 
   /* Avatar (used in topbar + stats modal) */
   .avatar {
@@ -227,6 +225,12 @@
   }
   .profile-cats tr:last-child td { border-bottom: 0; }
 
+  .profile-footer {
+    margin-top: 18px; padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end;
+  }
+
   .nav {
     display: flex; gap: 4px; background: #f1ece1;
     border-radius: 999px; padding: 3px;
@@ -315,6 +319,15 @@
     white-space: nowrap;
   }
   .lb .rank { color: var(--muted); white-space: nowrap; }
+  .lb .player-cell {
+    display: flex; align-items: center; gap: 10px; min-width: 0;
+  }
+  .lb .player-cell .avatar {
+    width: 26px; height: 26px; font-size: 12px; cursor: default;
+  }
+  .lb .player-cell .pname {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
   .lb tbody tr:last-child td { border-bottom: 0; }
   .lb .me { background: #fff7e6; }
   .lb .empty { color: var(--muted); padding: 16px 0; text-align: center; }
@@ -442,9 +455,8 @@
        "signed in as" muted text below that. */
     .topbar { padding: 10px 12px; gap: 8px 12px; }
     .topbar h2 { font-size: 17px; }
-    .topbar .spacer { display: none; }
+    /* Push nav to its own centered row beneath the title/avatar. */
     .topbar .nav { order: 5; flex-basis: 100%; justify-content: center; display: flex; }
-    .topbar .who { order: 4; flex-basis: 100%; font-size: 12px; }
 
     .section { padding: 16px 14px; }
     .section h3 { font-size: 15px; }
@@ -644,9 +656,7 @@ async function renderApp() {
           <button data-view="leaderboard" class="${appView === 'leaderboard' ? 'active' : ''}">Leaderboard</button>
           <button data-view="compare"     class="${appView === 'compare'     ? 'active' : ''}">Compare</button>
         </nav>
-        <div class="spacer"></div>
         ${avatarHTML(currentUser, { button: true, id: "topbar-avatar" })}
-        <button id="logout" class="ghost">Log out</button>
       </div>
 
       <div class="card section" id="score-card" style="${appView === 'score' ? '' : 'display:none'}">
@@ -721,7 +731,6 @@ async function renderApp() {
     </div>
   `;
 
-  $("logout").addEventListener("click", onLogout);
   $("topbar-avatar").addEventListener("click", openProfile);
   $("profile-close").addEventListener("click", closeProfile);
   $("profile-modal").addEventListener("click", (e) => {
@@ -858,7 +867,7 @@ function renderLeaderboard(lbDaily, lbTotal, lbAvg) {
       <tbody>${entries.map((e, i) => `
         <tr class="${e.name === meName ? 'me' : ''}">
           <td class="rank">${i + 1}</td>
-          <td>${escape(e.name)}</td>
+          <td><div class="player-cell">${avatarHTML(e)}<span class="pname">${escape(e.name)}</span></div></td>
           ${columns.map(c => `<td class="num">${escape(c.get(e))}</td>`).join("")}
         </tr>`).join("")}
       </tbody>
@@ -893,7 +902,7 @@ async function loadCategoryLeaderboard() {
         <tbody>${lbData.entries.map((e, i) => `
           <tr class="${e.name === meName ? 'me' : ''}">
             <td class="rank">${i + 1}</td>
-            <td>${escape(e.name)}</td>
+            <td><div class="player-cell">${avatarHTML(e)}<span class="pname">${escape(e.name)}</span></div></td>
             <td class="num">${Number(e.avg_pts).toFixed(2)}</td>
             <td class="num">${e.games_played}</td>
           </tr>`).join("")}
@@ -1089,11 +1098,15 @@ async function renderProfile() {
     ${summaryHTML}
     ${bestHTML}
     ${catRowsHTML}
+    <div class="profile-footer">
+      <button id="logout" class="ghost" type="button">Log out</button>
+    </div>
   `;
 
   $("avatar-input").addEventListener("change", onAvatarPick);
   const clr = $("avatar-clear");
   if (clr) clr.addEventListener("click", onAvatarClear);
+  $("logout").addEventListener("click", onLogout);
 }
 
 async function onAvatarPick(e) {
