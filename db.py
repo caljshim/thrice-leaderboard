@@ -146,6 +146,13 @@ def get_user(conn: sqlite3.Connection, user_id: int) -> Optional[sqlite3.Row]:
     ).fetchone()
 
 
+def get_user_by_name(conn: sqlite3.Connection, name: str) -> Optional[sqlite3.Row]:
+    return conn.execute(
+        "SELECT id, name, avatar_path, created_at FROM users WHERE name = ?",
+        (_normalize_name(name),),
+    ).fetchone()
+
+
 def upsert_question(
     conn: sqlite3.Connection,
     game_date: str,

@@ -172,7 +172,9 @@
     gap: 10px; padding-bottom: 16px;
     border-bottom: 1px solid var(--border); margin-bottom: 16px;
   }
-  .profile-head .avatar { width: 96px; height: 96px; font-size: 40px; cursor: default; }
+  .profile-head .avatar {
+    width: 140px; height: 140px; font-size: 56px; cursor: default;
+  }
   .profile-head .profile-name { font-size: 20px; font-weight: 700; }
   .profile-actions { display: flex; gap: 8px; }
   .profile-actions label, .profile-actions button {
@@ -319,11 +321,19 @@
     white-space: nowrap;
   }
   .lb .rank { color: var(--muted); white-space: nowrap; }
-  .lb .player-cell {
+  button.player-cell {
     display: flex; align-items: center; gap: 10px; min-width: 0;
+    background: transparent; border: 0; padding: 0; margin: 0;
+    font: inherit; color: inherit; text-align: left; cursor: pointer;
+    border-radius: 6px;
+  }
+  button.player-cell:hover { background: rgba(0,0,0,0.04); }
+  button.player-cell:focus-visible {
+    outline: 2px solid var(--accent-dim); outline-offset: 2px;
   }
   .lb .player-cell .avatar {
-    width: 26px; height: 26px; font-size: 12px; cursor: default;
+    width: 26px; height: 26px; font-size: 12px;
+    pointer-events: none;  /* let the parent button handle the click */
   }
   .lb .player-cell .pname {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
@@ -504,7 +514,7 @@
     .stats-summary { gap: 8px; }
     .stat { padding: 10px 6px; }
     .stat-num { font-size: 18px; }
-    .profile-head .avatar { width: 80px; height: 80px; font-size: 32px; }
+    .profile-head .avatar { width: 112px; height: 112px; font-size: 44px; }
     .profile-actions { flex-wrap: wrap; justify-content: center; }
   }
 </style>
@@ -532,14 +542,17 @@ function avatarHTML(user, opts = {}) {
   const interactive = !!opts.button;
   const tag = interactive ? "button" : "span";
   const id = opts.id ? ` id="${opts.id}"` : "";
+  // Interactive avatars get `data-profile-user` so the delegated body click
+  // handler opens that user's profile.
+  const dpu = interactive ? ` data-profile-user="${escape(user?.name || "")}"` : "";
   if (user && user.avatar_url) {
-    return `<${tag} class="avatar"${id} type="${interactive ? "button" : ""}">
+    return `<${tag} class="avatar"${id}${dpu} type="${interactive ? "button" : ""}">
               <img src="${escape(user.avatar_url)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">
             </${tag}>`;
   }
   const letter = (user?.name || "?").charAt(0).toLowerCase();
   const colorClass = /[a-z]/.test(letter) ? `c-${letter}` : "";
-  return `<${tag} class="avatar ${colorClass}"${id} type="${interactive ? "button" : ""}">${escape(letter.toUpperCase())}</${tag}>`;
+  return `<${tag} class="avatar ${colorClass}"${id}${dpu} type="${interactive ? "button" : ""}">${escape(letter.toUpperCase())}</${tag}>`;
 }
 
 // SQLite stores updated_at via datetime('now'), which is UTC in "YYYY-MM-DD HH:MM:SS".
@@ -731,7 +744,7 @@ async function renderApp() {
     </div>
   `;
 
-  $("topbar-avatar").addEventListener("click", openProfile);
+  // Topbar avatar click is handled by the delegated [data-profile-user] handler in init().
   $("profile-close").addEventListener("click", closeProfile);
   $("profile-modal").addEventListener("click", (e) => {
     if (e.target.id === "profile-modal") closeProfile();
@@ -867,7 +880,7 @@ function renderLeaderboard(lbDaily, lbTotal, lbAvg) {
       <tbody>${entries.map((e, i) => `
         <tr class="${e.name === meName ? 'me' : ''}">
           <td class="rank">${i + 1}</td>
-          <td><div class="player-cell">${avatarHTML(e)}<span class="pname">${escape(e.name)}</span></div></td>
+          <td><button class="player-cell" type="button" data-profile-user="${escape(e.name)}">${avatarHTML(e)}<span class="pname">${escape(e.name)}</span></button></td>
           ${columns.map(c => `<td class="num">${escape(c.get(e))}</td>`).join("")}
         </tr>`).join("")}
       </tbody>
@@ -902,7 +915,7 @@ async function loadCategoryLeaderboard() {
         <tbody>${lbData.entries.map((e, i) => `
           <tr class="${e.name === meName ? 'me' : ''}">
             <td class="rank">${i + 1}</td>
-            <td><div class="player-cell">${avatarHTML(e)}<span class="pname">${escape(e.name)}</span></div></td>
+            <td><button class="player-cell" type="button" data-profile-user="${escape(e.name)}">${avatarHTML(e)}<span class="pname">${escape(e.name)}</span></button></td>
             <td class="num">${Number(e.avg_pts).toFixed(2)}</td>
             <td class="num">${e.games_played}</td>
           </tr>`).join("")}
@@ -1028,21 +1041,34 @@ async function loadCompare() {
 
 /* ---------- PROFILE / STATS MODAL ---------- */
 
-function openProfile() {
+// targetName=null means "show currentUser"
+function openProfile(targetName = null) {
   $("profile-modal").classList.add("open");
-  renderProfile();  // fetches stats and paints body
+  renderProfile(targetName);
 }
 
 function closeProfile() {
   $("profile-modal").classList.remove("open");
 }
 
-async function renderProfile() {
+async function renderProfile(targetName = null) {
   const body = $("profile-body");
   body.innerHTML = '<div class="empty" style="color:var(--muted);padding:24px 0;text-align:center">Loading…</div>';
 
-  const stats = await api("GET", "/api/me/stats");
-  const u = currentUser;
+  // Decide whether we're viewing ourselves or somebody else.
+  const myName = (currentUser?.name || "").toLowerCase();
+  const wantName = (targetName || "").toLowerCase();
+  const isSelf = !wantName || wantName === myName;
+
+  let u, stats;
+  if (isSelf) {
+    stats = await api("GET", "/api/me/stats");
+    u = currentUser;
+  } else {
+    const data = await api("GET", `/api/users/${encodeURIComponent(targetName)}/stats`);
+    u = data.user;
+    stats = data.stats;
+  }
 
   const summaryHTML = `
     <div class="stats-summary">
@@ -1082,31 +1108,39 @@ async function renderProfile() {
         ? '<div style="color:var(--muted);font-size:13px;margin-top:14px">Per-category breakdown is only computed from per-question scores — entered totals don\'t contribute.</div>'
         : '');
 
+  const editControlsHTML = isSelf ? `
+    <div class="profile-actions">
+      <label>
+        <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/gif,image/webp">
+        ${u.avatar_url ? "Change picture" : "Upload picture"}
+      </label>
+      ${u.avatar_url ? '<button id="avatar-clear" type="button">Remove</button>' : ""}
+    </div>
+    <div class="err" id="avatar-err" style="font-size:12px"></div>` : "";
+
+  const footerHTML = isSelf ? `
+    <div class="profile-footer">
+      <button id="logout" class="ghost" type="button">Log out</button>
+    </div>` : "";
+
   body.innerHTML = `
     <div class="profile-head">
       ${avatarHTML(u, { button: false })}
       <div class="profile-name">${escape(u.name)}</div>
-      <div class="profile-actions">
-        <label>
-          <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/gif,image/webp">
-          ${u.avatar_url ? "Change picture" : "Upload picture"}
-        </label>
-        ${u.avatar_url ? '<button id="avatar-clear" type="button">Remove</button>' : ""}
-      </div>
-      <div class="err" id="avatar-err" style="font-size:12px"></div>
+      ${editControlsHTML}
     </div>
     ${summaryHTML}
     ${bestHTML}
     ${catRowsHTML}
-    <div class="profile-footer">
-      <button id="logout" class="ghost" type="button">Log out</button>
-    </div>
+    ${footerHTML}
   `;
 
-  $("avatar-input").addEventListener("change", onAvatarPick);
-  const clr = $("avatar-clear");
-  if (clr) clr.addEventListener("click", onAvatarClear);
-  $("logout").addEventListener("click", onLogout);
+  if (isSelf) {
+    $("avatar-input").addEventListener("change", onAvatarPick);
+    const clr = $("avatar-clear");
+    if (clr) clr.addEventListener("click", onAvatarClear);
+    $("logout").addEventListener("click", onLogout);
+  }
 }
 
 async function onAvatarPick(e) {
@@ -1149,6 +1183,13 @@ async function onLogout() {
 }
 
 async function init() {
+  // Delegated: clicking anyone's avatar or name in a leaderboard row opens
+  // their profile. Wired once at init so it survives renderApp() rebuilds.
+  document.body.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-profile-user]");
+    if (btn) openProfile(btn.dataset.profileUser);
+  });
+
   try {
     const d = await api("GET", "/api/me");
     currentUser = d.user;

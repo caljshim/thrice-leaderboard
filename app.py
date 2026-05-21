@@ -325,6 +325,24 @@ def api_me_stats():
     return jsonify(db.user_stats(get_conn(), uid))
 
 
+@app.route("/api/users/<name>/stats")
+def api_user_stats(name: str):
+    if current_user_id() is None:
+        return jsonify({"error": "not signed in"}), 401
+    row = db.get_user_by_name(get_conn(), name)
+    if row is None:
+        return jsonify({"error": "user not found"}), 404
+    stats = db.user_stats(get_conn(), row["id"])
+    return jsonify({
+        "user": {
+            "id": row["id"],
+            "name": row["name"],
+            "avatar_url": _avatar_url_for(row["avatar_path"]),
+        },
+        "stats": stats,
+    })
+
+
 def _require_user_id() -> int | None:
     return current_user_id()
 
